@@ -118,3 +118,60 @@ func (f *DocumentParserFactory) SupportedExtensions() []string {
 	}
 	return extensions
 }
+
+// ParseFromFile はファイルパスからドキュメントをパースする
+// ファイルの拡張子を自動的に検出し、適切なパーサーを使用する
+func (f *DocumentParserFactory) ParseFromFile(filePath string) (string, error) {
+	ext := getFileExtension(filePath)
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return "", fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	content, err := parser.ParseFromFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	return content, nil
+}
+
+// ParseFromBytes はバイト配列からドキュメントをパースする
+func (f *DocumentParserFactory) ParseFromBytes(ext string, data []byte) (string, error) {
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return "", fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	content, err := parser.ParseFromBytes(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse bytes: %w", err)
+	}
+
+	return content, nil
+}
+
+// ParseFromReader はio.ReaderAtからドキュメントをパースする
+func (f *DocumentParserFactory) ParseFromReader(ext string, reader io.ReaderAt, size int64) (string, error) {
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return "", fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	content, err := parser.ParseFromReader(reader, size)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse from reader: %w", err)
+	}
+
+	return content, nil
+}
+
+// getFileExtension はファイルパスから拡張子を取得
+func getFileExtension(filePath string) string {
+	for i := len(filePath) - 1; i >= 0; i-- {
+		if filePath[i] == '.' {
+			return filePath[i:]
+		}
+	}
+	return ""
+}
