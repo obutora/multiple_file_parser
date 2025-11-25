@@ -4,7 +4,7 @@
 
 ## 特徴
 
-- 🚀 **複数フォーマット対応**: PDF、DOCX、PPTX、およびテキストファイルをサポート
+- 🚀 **複数フォーマット対応**: PDF、DOCX、PPTX、Excel、およびテキストファイルをサポート
 - 📦 **柔軟なパース方法**: ファイルパス、バイト配列、`io.ReaderAt`の3つの方法でパース可能
 - 🔌 **拡張可能**: ファクトリーパターンを採用し、カスタムパーサーの追加が容易
 - 🎯 **シンプルなAPI**: 統一されたインターフェースで簡単に使用可能
@@ -16,6 +16,7 @@
 | PDF        | `.pdf`                               | PDFドキュメント                                |
 | Word       | `.docx`                              | Microsoft Word文書                             |
 | PowerPoint | `.pptx`, `.ppt`                      | Microsoft PowerPointプレゼンテーション         |
+| Excel      | `.xlsx`, `.xls`                      | Microsoft Excelスプレッドシート                |
 | テキスト   | `.txt`, `.md`, `.json`, `.xml`, など | プレーンテキストおよび各種ソースコードファイル |
 
 ## インストール
@@ -171,6 +172,7 @@ TextParserは以下の拡張子をサポートしています：
 ## 依存関係
 
 - `github.com/ledongthuc/pdf`: PDFパース用
+- `github.com/xuri/excelize/v2`: Excelパース用
 
 ## ライセンス
 
