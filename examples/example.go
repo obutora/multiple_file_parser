@@ -70,4 +70,14 @@ func main() {
 	} else {
 		fmt.Printf("パース結果:\n%s\n\n", content)
 	}
+
+	// 例5: XLSXファイルのパース
+	xlsxFilePath := "assets/sample.xlsx"
+	fmt.Printf("=== ファイルからパース: %s ===\n", xlsxFilePath)
+	content, err = factory.ParseFromFile(xlsxFilePath)
+	if err != nil {
+		log.Printf("XLSXファイルのパースに失敗: %v\n", err)
+	} else {
+		fmt.Printf("パース結果:\n%s\n\n", content)
+	}
 }
