@@ -85,6 +85,11 @@ func NewDocumentParserFactory() *DocumentParserFactory {
 		factory.parsers[ext] = textParser
 	}
 
+	excelParser := &ExcelParser{}
+	for _, ext := range excelParser.SupportedExtensions() {
+		factory.parsers[ext] = excelParser
+	}
+
 	return factory
 }
 
