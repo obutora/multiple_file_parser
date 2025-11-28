@@ -37,22 +37,54 @@ func (p *DOCXParser) ParseFromReader(reader io.ReaderAt, size int64) (string, er
 			}
 
 			// XMLをパース
-			content, err := io.ReadAll(rc)
-			if err != nil {
-				rc.Close()
-				return "", fmt.Errorf("error reading file %s: %w", f.Name, err)
-			}
-			rc.Close()
+			err = func() error {
+				defer rc.Close()
+				decoder := xml.NewDecoder(rc)
+				inBody := false
+				for {
+					t, err := decoder.Token()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						return fmt.Errorf("error parsing XML: %w", err)
+					}
 
-			var document DocxDocument
-			err = xml.Unmarshal(content, &document)
-			if err != nil {
-				return "", fmt.Errorf("error parsing XML for %s: %w", f.Name, err)
-			}
+					switch se := t.(type) {
+					case xml.StartElement:
+						if se.Name.Local == "body" {
+							inBody = true
+						}
+						if inBody {
+							if se.Name.Local == "p" {
+								var p DocxParagraph
+								if err := decoder.DecodeElement(&p, &se); err != nil {
+									return err
+								}
+								text := extractTextFromParagraph(p)
+								if text != "" {
+									allText.WriteString(text + "\n")
+								}
+							} else if se.Name.Local == "tbl" {
+								var tbl DocxTable
+								if err := decoder.DecodeElement(&tbl, &se); err != nil {
+									return err
+								}
+								allText.WriteString(extractTextFromTable(tbl))
+							}
+						}
+					case xml.EndElement:
+						if se.Name.Local == "body" {
+							inBody = false
+						}
+					}
+				}
+				return nil
+			}()
 
-			// テキストを抽出
-			extractedText := extractTextFromDocument(document)
-			allText.WriteString(extractedText)
+			if err != nil {
+				return "", err
+			}
 
 			break // document.xmlは1つなので見つけたら終了
 		}
@@ -74,12 +106,17 @@ type DocxParagraph struct {
 	Runs []DocxRun `xml:"r"`
 }
 
-type DocxBody struct {
-	Paragraphs []DocxParagraph `xml:"p"`
+// テーブル構造体
+type DocxTable struct {
+	Rows []DocxTableRow `xml:"tr"`
 }
 
-type DocxDocument struct {
-	Body DocxBody `xml:"body"`
+type DocxTableRow struct {
+	Cells []DocxTableCell `xml:"tc"`
+}
+
+type DocxTableCell struct {
+	Paragraphs []DocxParagraph `xml:"p"`
 }
 
 // ParseDocxToString は後方互換性のための既存メソッド
@@ -92,25 +129,29 @@ func ParseDocxToString(docxFilePath string) string {
 	return result
 }
 
-func extractTextFromDocument(document DocxDocument) string {
-	var result []string
+func extractTextFromParagraph(p DocxParagraph) string {
+	var paragraphText strings.Builder
+	for _, run := range p.Runs {
+		paragraphText.WriteString(run.Text.Content)
+	}
+	return paragraphText.String()
+}
 
-	for _, paragraph := range document.Body.Paragraphs {
-		var paragraphText strings.Builder
-
-		for _, run := range paragraph.Runs {
-			if run.Text.Content != "" {
-				paragraphText.WriteString(run.Text.Content)
+func extractTextFromTable(tbl DocxTable) string {
+	var sb strings.Builder
+	for _, row := range tbl.Rows {
+		rowTexts := []string{}
+		for _, cell := range row.Cells {
+			for _, p := range cell.Paragraphs {
+				text := extractTextFromParagraph(p)
+				if text != "" {
+					rowTexts = append(rowTexts, text)
+				}
 			}
 		}
-
-		if paragraphText.Len() > 0 {
-			result = append(result, paragraphText.String())
-		} else {
-			// 空の段落も改行として扱う
-			result = append(result, "")
+		if len(rowTexts) > 0 {
+			sb.WriteString(strings.Join(rowTexts, "\t") + "\n")
 		}
 	}
-
-	return strings.Join(result, "\n")
+	return sb.String()
 }
