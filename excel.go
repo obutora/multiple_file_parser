@@ -1,11 +1,9 @@
 package documentParser
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
@@ -20,23 +18,11 @@ func (p *ExcelParser) SupportedExtensions() []string {
 }
 
 func (p *ExcelParser) ParseFromFile(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return "", fmt.Errorf("failed to get file stats: %w", err)
-	}
-
-	return p.ParseFromReader(file, stat.Size())
+	return parseFromFileCommon(p, filePath)
 }
 
 func (p *ExcelParser) ParseFromBytes(data []byte) (string, error) {
-	reader := bytes.NewReader(data)
-	return p.ParseFromReader(reader, int64(len(data)))
+	return parseFromBytesCommon(p, data)
 }
 
 func (p *ExcelParser) ParseFromReader(reader io.ReaderAt, size int64) (string, error) {

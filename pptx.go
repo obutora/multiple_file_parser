@@ -2,12 +2,10 @@ package documentParser
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 )
 
@@ -23,24 +21,12 @@ func (p *PPTXParser) SupportedExtensions() []string {
 
 // ParseFromFile はファイルパスからPPTXをパース
 func (p *PPTXParser) ParseFromFile(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return "", fmt.Errorf("failed to get file stats: %w", err)
-	}
-
-	return p.ParseFromReader(file, stat.Size())
+	return parseFromFileCommon(p, filePath)
 }
 
 // ParseFromBytes はバイト配列からPPTXをパース
 func (p *PPTXParser) ParseFromBytes(data []byte) (string, error) {
-	reader := bytes.NewReader(data)
-	return p.ParseFromReader(reader, int64(len(data)))
+	return parseFromBytesCommon(p, data)
 }
 
 // ParseFromReader はio.ReaderAtからPPTXをパース

@@ -53,6 +53,28 @@ func (p *BaseParser) ParseFromReader(reader io.ReaderAt, size int64) (string, er
 	return "", fmt.Errorf("ParseFromReader not implemented")
 }
 
+// parseFromFileCommon は各パーサーで利用可能な共通実装
+func parseFromFileCommon(p DocumentParser, filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return "", fmt.Errorf("failed to get file stats: %w", err)
+	}
+
+	return p.ParseFromReader(file, stat.Size())
+}
+
+// parseFromBytesCommon は各パーサーで利用可能な共通実装
+func parseFromBytesCommon(p DocumentParser, data []byte) (string, error) {
+	reader := bytes.NewReader(data)
+	return p.ParseFromReader(reader, int64(len(data)))
+}
+
 // DocumentParserFactory はファイル拡張子に基づいてパーサーを返す
 type DocumentParserFactory struct {
 	parsers map[string]DocumentParser
