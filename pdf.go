@@ -1,11 +1,9 @@
 package documentParser
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/ledongthuc/pdf"
@@ -21,10 +19,19 @@ func (p *PDFParser) SupportedExtensions() []string {
 	return []string{".pdf"}
 }
 
-// ParseFromBytes はバイト配列からPDFをパース（PDFライブラリの制約により必要）
+// ParseFromFile はファイルパスからPDFをパース
+func (p *PDFParser) ParseFromFile(filePath string) (string, error) {
+	return parseFromFileCommon(p, filePath)
+}
+
+// ParseFromBytes はバイト配列からPDFをパース
 func (p *PDFParser) ParseFromBytes(data []byte) (string, error) {
-	reader := bytes.NewReader(data)
-	pdfReader, err := pdf.NewReader(reader, int64(len(data)))
+	return parseFromBytesCommon(p, data)
+}
+
+// ParseFromReader はio.ReaderAtからPDFをパース
+func (p *PDFParser) ParseFromReader(reader io.ReaderAt, size int64) (string, error) {
+	pdfReader, err := pdf.NewReader(reader, size)
 	if err != nil {
 		return "", fmt.Errorf("error reading PDF: %w", err)
 	}
@@ -63,34 +70,6 @@ func (p *PDFParser) ParseFromBytes(data []byte) (string, error) {
 	}
 
 	return result.String(), nil
-}
-
-// ParseFromFile はファイルパスからPDFをパース
-func (p *PDFParser) ParseFromFile(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return "", fmt.Errorf("failed to get file stats: %w", err)
-	}
-
-	return p.ParseFromReader(file, stat.Size())
-}
-
-// ParseFromReader はPDFの場合、内部でバイト配列に変換
-func (p *PDFParser) ParseFromReader(reader io.ReaderAt, size int64) (string, error) {
-	// PDFライブラリの制約により、一度バイト配列に読み込む必要がある
-	data := make([]byte, size)
-	_, err := reader.ReadAt(data, 0)
-	if err != nil {
-		return "", fmt.Errorf("failed to read PDF data: %w", err)
-	}
-
-	return p.ParseFromBytes(data)
 }
 
 // ParsePdfToString は後方互換性のための既存メソッド
