@@ -87,6 +87,31 @@ parser, _ := factory.GetParser(".pdf")
 content, err := parser.ParseFromReader(file, stat.Size())
 ```
 
+### シート/ページごとのパース（Excel等）
+
+Excelファイルのように複数のシートを持つドキュメントの場合、シートごとに内容を分けて取得することができます。
+
+```go
+factory := service.NewDocumentParserFactory()
+
+// シート名をキー、内容を値とするマップを取得
+sheets, err := factory.ParseFromFileWithPages("spreadsheet.xlsx")
+if err != nil {
+    log.Fatal(err)
+}
+
+for name, content := range sheets {
+    fmt.Printf("--- Sheet: %s ---\n%s\n", name, content)
+}
+```
+
+この機能は以下のメソッドで利用可能です：
+- `ParseFromFileWithPages(filePath string)`
+- `ParseFromBytesWithPages(ext string, data []byte)`
+- `ParseFromReaderWithPages(ext string, reader io.ReaderAt, size int64)`
+
+※ 対応していないファイル形式の場合は、全体を一つのコンテンツとしてマップ（キー: "Content"）に入れて返します。
+
 ### サポートされている拡張子の確認
 
 ```go
