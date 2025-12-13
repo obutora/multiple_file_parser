@@ -72,12 +72,21 @@ func main() {
 	}
 
 	// 例5: XLSXファイルのパース
-	xlsxFilePath := "assets/sample.xlsx"
-	fmt.Printf("=== ファイルからパース: %s ===\n", xlsxFilePath)
-	content, err = factory.ParseFromFile(xlsxFilePath)
+	// 例6: XLSXファイルのシート分割パース
+	fmt.Printf("=== ファイルからパース (シート分割): %s ===\n", xlsxFilePath)
+	sheetContents, err := factory.ParseFromFileWithPages(xlsxFilePath)
 	if err != nil {
 		log.Printf("XLSXファイルのパースに失敗: %v\n", err)
 	} else {
-		fmt.Printf("パース結果:\n%s\n\n", content)
+		fmt.Printf("パース結果 (シート数: %d):\n", len(sheetContents))
+		for name, content := range sheetContents {
+			r := []rune(content)
+			if len(r) > 100 {
+				t := string(r[:100]) + "..."
+				fmt.Printf("--- Sheet: %s ---\n%s\n", name, t)
+				continue
+			}
+			fmt.Printf("--- Sheet: %s ---\n%v\n", name, r)
+		}
 	}
 }

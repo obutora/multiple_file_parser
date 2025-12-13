@@ -193,6 +193,84 @@ func (f *DocumentParserFactory) ParseFromReader(ext string, reader io.ReaderAt, 
 	return content, nil
 }
 
+// PageSeparatedParser はページやシートごとに分割してパースするインターフェース
+type PageSeparatedParser interface {
+	DocumentParser
+	// ParseWithPages はio.ReaderAtからドキュメントをパースし、ページ/シートごとのマップを返す
+	ParseWithPages(reader io.ReaderAt, size int64) (map[string]string, error)
+}
+
+// ParseFromFileWithPages はファイルパスからドキュメントをパースし、可能な場合はページ/シートごとに分割して返す
+func (f *DocumentParserFactory) ParseFromFileWithPages(filePath string) (map[string]string, error) {
+	ext := getFileExtension(filePath)
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	if p, ok := parser.(PageSeparatedParser); ok {
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %w", err)
+		}
+		defer file.Close()
+
+		stat, err := file.Stat()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file stats: %w", err)
+		}
+
+		return p.ParseWithPages(file, stat.Size())
+	}
+
+	// PageSeparatedParserを実装していない場合は通常パースを行い、全体を一つの要素として返す
+	content, err := parser.ParseFromFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	return map[string]string{"Content": content}, nil
+}
+
+// ParseFromBytesWithPages はバイト配列からドキュメントをパースし、可能な場合はページ/シートごとに分割して返す
+func (f *DocumentParserFactory) ParseFromBytesWithPages(ext string, data []byte) (map[string]string, error) {
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	if p, ok := parser.(PageSeparatedParser); ok {
+		reader := bytes.NewReader(data)
+		return p.ParseWithPages(reader, int64(len(data)))
+	}
+
+	content, err := parser.ParseFromBytes(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse bytes: %w", err)
+	}
+
+	return map[string]string{"Content": content}, nil
+}
+
+// ParseFromReaderWithPages はio.ReaderAtからドキュメントをパースし、可能な場合はページ/シートごとに分割して返す
+func (f *DocumentParserFactory) ParseFromReaderWithPages(ext string, reader io.ReaderAt, size int64) (map[string]string, error) {
+	parser, err := f.GetParser(ext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parser: %w", err)
+	}
+
+	if p, ok := parser.(PageSeparatedParser); ok {
+		return p.ParseWithPages(reader, size)
+	}
+
+	content, err := parser.ParseFromReader(reader, size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse from reader: %w", err)
+	}
+
+	return map[string]string{"Content": content}, nil
+}
+
 // getFileExtension はファイルパスから拡張子を取得
 func getFileExtension(filePath string) string {
 	for i := len(filePath) - 1; i >= 0; i-- {
